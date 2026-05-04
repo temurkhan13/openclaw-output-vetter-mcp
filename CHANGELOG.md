@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [1.0.0] — 2026-05-04
+## [1.0.1] — 2026-05-04
+
+### Fixed
+- pyproject.toml `description` field exceeded PyPI's 512-character limit on the `summary` metadata, causing the v1.0.0 upload to fail with `400 Bad Request: 'summary' field must be 512 characters or less`. Trimmed to under 512 chars while preserving the differentiator framing (sub-second / inline / MCP-native vs DeepEval/Phoenix/LangSmith). v1.0.0 was tagged but never landed on PyPI — v1.0.1 is the first published version.
+
+## [1.0.0] — 2026-05-04 (tag-only, never landed on PyPI)
 
 ### Added
 
@@ -27,5 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 This is P06 in the venture Pipeline (`Pipeline/opportunities.md` — see vault). Surfaced from r/ClaudeAI silent-fake-success thread (Pass 2) + r/AI_Agents 0-meeting agent thread (Pass 2) + r/SaaS hallucination thread (Pass 3) — three independent buyer-vocabulary citations clearing the ≥3 graduation gate. Incumbent-validated against DeepEval (Pass 4) — DeepEval's MCP is eval-pipeline-orchestration scope (run named eval suites, inspect dataset history); P06's differentiator is single-transcript inline scope (verify THIS conversation right now). Different surface, same metric philosophy.
 
-[Unreleased]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/releases/tag/v1.0.0

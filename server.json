@@ -6,12 +6,12 @@
     "url": "https://github.com/temurkhan13/openclaw-output-vetter-mcp",
     "source": "github"
   },
-  "version": "1.0.0",
+  "version": "1.0.1",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "openclaw-output-vetter-mcp",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "transport": {
         "type": "stdio"
       }

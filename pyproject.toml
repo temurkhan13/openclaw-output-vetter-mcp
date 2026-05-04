@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "openclaw-output-vetter-mcp"
-version = "1.0.0"
-description = "MCP server for verifying AI agent claims vs reality — single-transcript inline grounding-check that flags when an agent's response states facts not in the input context, when its code silently swallows exceptions and substitutes mock data, or when its multi-turn transcript contains contradictions or unverified completion claims. Sub-second, local, free, MCP-native — designed to be called inline from Claude Code / Cursor / Cline / OpenClaw agents during the conversation, not as a separate eval-pipeline. The lightweight complement to dashboard-based eval frameworks (DeepEval, Phoenix, LangSmith)."
+version = "1.0.1"
+description = "MCP server for verifying AI agent claims vs reality — inline grounding-check on retrieval context, swallowed-exception scanner on agent-written code, and multi-turn transcript review for unverified completions + cross-turn contradictions. Sub-second, local, free, MCP-native — the lightweight complement to dashboard-based eval frameworks (DeepEval, Phoenix, LangSmith)."
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
