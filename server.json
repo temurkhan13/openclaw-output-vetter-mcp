@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.temurkhan13/openclaw-output-vetter-mcp",
+  "description": "Verify AI agent claims vs reality: inline grounding-check + swallowed-exception + transcript review.",
+  "repository": {
+    "url": "https://github.com/temurkhan13/openclaw-output-vetter-mcp",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "openclaw-output-vetter-mcp",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

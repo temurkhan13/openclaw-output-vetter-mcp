@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  publish:
+    name: Build + publish to PyPI
+    runs-on: ubuntu-latest
+    permissions:
+      # PyPI Trusted Publishing requires id-token write
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build
+
+      - name: Verify tag matches package version
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          PKG_VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Tag version $TAG_VERSION does not match pyproject.toml version $PKG_VERSION"
+            exit 1
+          fi
+
+      - name: Build sdist + wheel
+        run: python -m build
+
+      - name: Publish to PyPI
+        # Uses PyPI Trusted Publishing — must be configured in PyPI project settings
+        # to accept this repository's GitHub Actions environment.
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # Remove this line + use Trusted Publishing in PyPI project settings.
+          # If TP not configured, supply password via PYPI_API_TOKEN secret.
+          # password: ${{ secrets.PYPI_API_TOKEN }}
+          skip-existing: true
