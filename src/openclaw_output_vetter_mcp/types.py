@@ -137,3 +137,54 @@ class TranscriptReview(BaseModel):
     issue_count: int
     issues: list[TranscriptIssue]
     summary: str
+
+
+# ─────────── Action-outcome verifier (v1.1+, P10 ABSORB) ───────────
+
+
+class ActionOutcomeMismatch(BaseModel):
+    """One mismatch between an agent's claim and the actual before/after state diff."""
+
+    model_config = ConfigDict(frozen=True)
+
+    severity: Severity
+    rule_id: str
+    """Stable identifier — `ACTION_OUTCOME.UNSUPPORTED_CLAIM`,
+    `ACTION_OUTCOME.STATE_UNCHANGED`, `ACTION_OUTCOME.TESTS_NOT_PASSING`,
+    `ACTION_OUTCOME.NO_COMMIT`, `ACTION_OUTCOME.UNCOMMITTED_CHANGES`,
+    `ACTION_OUTCOME.STATE_VIOLATED_CONSTRAINT`, `ACTION_OUTCOME.MISSING_EXPECTED_CHANGE`,
+    `ACTION_OUTCOME.AMBIGUOUS_CLAIM`."""
+    claim_excerpt: str
+    """Quoted fragment of the claim that this mismatch is about (truncated to 200 chars)."""
+    expected: str
+    """What the claim implied should have happened — in plain English."""
+    actual: str
+    """What the diff actually shows — in plain English."""
+    description: str
+
+
+class ActionOutcomeReport(BaseModel):
+    """Response for `verify_action_outcome` — compares an agent claim against before/after state diff.
+
+    The scanner is the next layer below `review_transcript`'s
+    `unverified-completion-claim` check: that one fires when a claim has *no
+    supporting tool calls visible in the transcript*. This one fires when a
+    claim *has* supporting tool calls, but the side effects don't match.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    verdict: Verdict
+    """CLEAN if all extracted claims match the diff; PARTIALLY_GROUNDED if some
+    match and some don't; FABRICATED if the diff actively contradicts the
+    claim (state unchanged or violated stated constraint); UNVERIFIED if the
+    claim couldn't be parsed into checkable assertions."""
+    matched_count: int
+    """Claim assertions that matched the diff."""
+    mismatched_count: int
+    """Claim assertions that did not match the diff."""
+    mismatches: list[ActionOutcomeMismatch]
+    """All mismatches, sorted CRITICAL → INFO."""
+    diff_summary: str
+    """One-line text summary of what changed between the snapshots."""
+    summary: str

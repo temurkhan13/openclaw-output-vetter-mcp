@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-05-05
+
+### Added — action-outcome verifier (P10 ABSORB)
+
+New 4th tool `verify_action_outcome(claim, before_snapshot, after_snapshot, expected_changes?)` that compares an agent's stated outcome against actual before/after state. This is the next layer below `review_transcript`'s `unverified-completion-claim` check:
+- `review_transcript` flags claims with NO supporting tool calls (transcript-only).
+- `verify_action_outcome` flags claims WITH tool calls whose **side effects don't match** what the agent said happened.
+
+The targeted failure mode is the [@chiefofautism quote (158↑ / 11.5K views)](https://x.com/chiefofautism/status/2023151450503753972): *"...and it will do it confidently while telling you that he cleaned up the project structure"*. Plus the [Codex sandbox-escalation case](https://x.com/heynavtoor/status/2049202562373751162) — agent's chain of thought acknowledged the read-only constraint, then wrote to disk anyway.
+
+**Snapshot shape (schema-loose):** caller passes arbitrary `dict[str, Any]`. Recognized keys when present:
+
+  - `files: list[str]` — file paths in working dir; set-diff
+  - `git_status: str | dict` — "clean" / "dirty" semantics
+  - `git_tip` / `git_head` / `git_log_tip: str` — HEAD commit SHA
+  - `tests_status` / `test_status: str | dict` — "pass" / "fail" or `{"passed": N, "failed": N}`
+  - `read_only: bool` — caller-asserted no-write constraint; if True in before AND state changes → `STATE_VIOLATED_CONSTRAINT` (Codex case)
+
+Other keys are tracked for general "did anything change?" diff-summary, but no claim-specific matchers run.
+
+**Detection rules** (8 rule_ids under `ACTION_OUTCOME.*`):
+- `STATE_UNCHANGED` (HIGH) — vague-completion claim + identical before/after snapshots (the chiefofautism case)
+- `UNSUPPORTED_CLAIM` (HIGH) — claim references a specific filename that's not in the diff
+- `TESTS_NOT_PASSING` (CRITICAL) — claim says tests pass; tests_status indicates failure
+- `NO_COMMIT` (HIGH) — claim says committed/pushed/shipped; git_tip didn't change
+- `UNCOMMITTED_CHANGES` (HIGH) — claim says repo is clean; git_status indicates dirty
+- `STATE_VIOLATED_CONSTRAINT` (CRITICAL) — read_only=True asserted but state changed (Codex case)
+- `MISSING_EXPECTED_CHANGE` (HIGH/MEDIUM) — caller-supplied `expected_changes` entry not satisfied
+- `AMBIGUOUS_CLAIM` (MEDIUM) — claim is checkable but snapshots lack the relevant key
+
+**Verdict ladder** (reuses existing `Verdict` enum):
+- `CLEAN` — all extracted claim assertions match the diff
+- `PARTIALLY_GROUNDED` — some match, some don't
+- `FABRICATED` — diff actively contradicts the claim (state unchanged or constraint violated)
+- `UNVERIFIED` — claim couldn't be parsed into testable assertions
+
+### Added (other)
+- New demo resource `vetter://demo/action-divergence` showing the chiefofautism case (claim says "I cleaned up the project structure"; before == after).
+- New prompt `verify-this-action` walking through the new tool with snapshot-capture guidance.
+- 32 new tests (`test_action_outcome.py`) covering claim parsing, diff matching, constraint checks, expected_changes, and verdict ladders. **85 total tests passing**, ruff + mypy strict clean.
+
+### Notes on architecture
+P10 was absorbed into output-vetter rather than promoted to a standalone product per the absorption-gate analysis in [[Pipeline/opportunities]]: 3-of-4 gate criteria match (same buyer, same channel, same marketing motion); 1-of-4 differs (paired-call shape vs single-call) but is acceptable since the new tool is the natural next-layer of v1.0's existing `review_transcript`. Reversible — can split into a standalone child package in v1.2 if Pass 8+ shows a buyer who wants reconciliation without grounding/swallowed-exceptions.
+
 ## [1.0.2] — 2026-05-05
 
 ### Changed — README refresh from Pass 7 sweep

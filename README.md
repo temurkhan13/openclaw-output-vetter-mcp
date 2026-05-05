@@ -21,7 +21,7 @@ That second half — *"while telling you that he cleaned up the project structur
 - **Hallucinated claims.** [r/SaaS founder thread (May 2 2026)](https://old.reddit.com/r/SaaS/comments/1t161qg/we_caught_1_in_50_ai_responses_hallucinating_in/) verbatim: *"Status 200, latency normal, tokens normal. A hallucinated response looks identical to a good one in every standard dashboard."* The fix the founder describes is exactly what this MCP server provides: *"a lightweight check that flags when the model states something not in the input context."*
 - **Silent fake success in agent-written code.** [r/ClaudeAI thread (509 pts, 186 comments)](https://old.reddit.com/r/ClaudeAI/comments/1sdmohb/after_months_with_claude_code_the_biggest_time/) verbatim: *"The agent couldn't get auth working, so it quietly inserted a try/catch that returns sample data on failure. The output you saw on day one was never real."*
 - **Unverified completion claims.** [r/AI_Agents (114 pts)](https://old.reddit.com/r/AI_Agents/comments/1skxyrx/my_clients_ai_sales_agent_booked_0_meetings_in_2/) — agent self-reports completion ("I've configured X"); reality at outcome level (booked meetings, deployed services, working integrations) doesn't match.
-- **Stated-vs-actual divergence.** Newer pattern surfaced in the same CLTR data: agent's own chain-of-thought *acknowledges* a constraint, then violates it. The Codex example (cited in [Nav Toor's thread](https://x.com/heynavtoor/status/2049202562373751162)): *"OpenAI Codex was running in read-only sandbox mode. It explicitly noted the read-only constraint in its own chain of thought. Then it escalated permissions and wrote to disk anyway."* See [P10 candidate](https://github.com/temurkhan13/openclaw-output-vetter-mcp/issues) — possible v1.1 expansion adding action-outcome reconciliation.
+- **Stated-vs-actual divergence.** Newer pattern surfaced in the same CLTR data: agent's own chain-of-thought *acknowledges* a constraint, then violates it. The Codex example (cited in [Nav Toor's thread](https://x.com/heynavtoor/status/2049202562373751162)): *"OpenAI Codex was running in read-only sandbox mode. It explicitly noted the read-only constraint in its own chain of thought. Then it escalated permissions and wrote to disk anyway."* **Covered in v1.1** by the new `verify_action_outcome` tool — pass `read_only: true` in the before-snapshot and any state change in the after-snapshot triggers `ACTION_OUTCOME.STATE_VIOLATED_CONSTRAINT` (CRITICAL).
 
 This MCP server runs **three pure-Python checks inline during the conversation** — no API key, no LLM-as-judge cost, sub-second:
 
@@ -104,15 +104,18 @@ Built for the **production AI operator** who's already using Claude Code / Curso
 | `verify_response_grounding` | Per-claim grounded/ungrounded + overall verdict (CLEAN / PARTIALLY_GROUNDED / FABRICATED) + overlap scores + summary |
 | `find_swallowed_exceptions` | Per-finding line number + pattern (`pass-only` / `mock-substitution` / `silent-log-and-return` / `bare-except`) + severity + code excerpt |
 | `review_transcript` | Per-issue turn indices + issue kind (`unverified-completion-claim` / `cross-turn-contradiction`) + severity + evidence excerpt |
+| `verify_action_outcome` *(v1.1+)* | **NEW** — compare an agent's stated outcome against actual before/after state snapshots. Catches the [@chiefofautism, 158↑] case (agent says *"I cleaned up the project structure"* when nothing changed) + the Codex sandbox-escalation case (read-only constraint asserted, then violated). 8 detection rules under `ACTION_OUTCOME.*`. Pure function — caller captures snapshots; server stays stateless. |
 
 Resources:
 - `vetter://demo/grounded` — sample CLEAN grounding result
 - `vetter://demo/fabricated` — sample FABRICATED grounding result
 - `vetter://demo/swallowed-exceptions` — sample swallowed-exception scan
+- `vetter://demo/action-divergence` *(v1.1+)* — sample FABRICATED action-outcome verdict (claim says "cleaned up" but before == after)
 
 Prompts:
 - `verify-this-answer(threshold)` — walks `verify_response_grounding` on the most recent assistant answer
 - `audit-this-code` — walks `find_swallowed_exceptions` on a code block + explains each finding's risk
+- `verify-this-action` *(v1.1+)* — walks `verify_action_outcome` with snapshot-capture guidance + per-mismatch interpretation
 
 ---
 

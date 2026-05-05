@@ -17,7 +17,7 @@ def test_build_server() -> None:
 # ───────────── Tool registration ─────────────
 
 
-async def test_list_tools_returns_three() -> None:
+async def test_list_tools_returns_four() -> None:
     from mcp.types import ListToolsRequest
 
     server = build_server()
@@ -28,6 +28,7 @@ async def test_list_tools_returns_three() -> None:
         "verify_response_grounding",
         "find_swallowed_exceptions",
         "review_transcript",
+        "verify_action_outcome",
     }
     assert names == expected
 
@@ -200,6 +201,52 @@ async def test_call_tool_review_transcript_handles_empty_list() -> None:
     assert parsed["turn_count"] == 0
 
 
+async def test_call_tool_verify_action_outcome_clean() -> None:
+    from mcp.types import CallToolRequest, CallToolRequestParams
+
+    server = build_server()
+    handler = server.request_handlers[CallToolRequest]
+    result = await handler(
+        CallToolRequest(
+            method="tools/call",
+            params=CallToolRequestParams(
+                name="verify_action_outcome",
+                arguments={
+                    "claim": "Created auth.py.",
+                    "before_snapshot": {"files": ["main.py"]},
+                    "after_snapshot": {"files": ["main.py", "auth.py"]},
+                },
+            ),
+        )
+    )
+    parsed = json.loads(result.root.content[0].text)
+    assert parsed["verdict"] == "clean"
+
+
+async def test_call_tool_verify_action_outcome_fabricated() -> None:
+    from mcp.types import CallToolRequest, CallToolRequestParams
+
+    server = build_server()
+    handler = server.request_handlers[CallToolRequest]
+    result = await handler(
+        CallToolRequest(
+            method="tools/call",
+            params=CallToolRequestParams(
+                name="verify_action_outcome",
+                arguments={
+                    "claim": "I cleaned up the project structure.",
+                    "before_snapshot": {"files": ["a.py"]},
+                    "after_snapshot": {"files": ["a.py"]},
+                },
+            ),
+        )
+    )
+    parsed = json.loads(result.root.content[0].text)
+    assert parsed["verdict"] == "fabricated"
+    rule_ids = {m["rule_id"] for m in parsed["mismatches"]}
+    assert "ACTION_OUTCOME.STATE_UNCHANGED" in rule_ids
+
+
 async def test_call_tool_unknown_returns_error() -> None:
     from mcp.types import CallToolRequest, CallToolRequestParams
 
@@ -218,7 +265,7 @@ async def test_call_tool_unknown_returns_error() -> None:
 # ───────────── Resources ─────────────
 
 
-async def test_list_resources_returns_three() -> None:
+async def test_list_resources_returns_four() -> None:
     from mcp.types import ListResourcesRequest
 
     server = build_server()
@@ -229,23 +276,27 @@ async def test_list_resources_returns_three() -> None:
         "vetter://demo/grounded",
         "vetter://demo/fabricated",
         "vetter://demo/swallowed-exceptions",
+        "vetter://demo/action-divergence",
     } <= uris
 
 
 # ───────────── Prompts ─────────────
 
 
-async def test_list_prompts_returns_two() -> None:
+async def test_list_prompts_returns_three() -> None:
     from mcp.types import ListPromptsRequest
 
     server = build_server()
     handler = server.request_handlers[ListPromptsRequest]
     result = await handler(ListPromptsRequest(method="prompts/list"))
     names = {p.name for p in result.root.prompts}
-    assert names == {"verify-this-answer", "audit-this-code"}
+    assert names == {"verify-this-answer", "audit-this-code", "verify-this-action"}
 
 
-@pytest.mark.parametrize("prompt_name", ["verify-this-answer", "audit-this-code"])
+@pytest.mark.parametrize(
+    "prompt_name",
+    ["verify-this-answer", "audit-this-code", "verify-this-action"],
+)
 async def test_get_prompt_returns_walkthrough_text(prompt_name: str) -> None:
     from mcp.types import GetPromptRequest, GetPromptRequestParams
 
@@ -262,5 +313,9 @@ async def test_get_prompt_returns_walkthrough_text(prompt_name: str) -> None:
     # Each prompt should reference at least one of the tools it walks through
     assert any(
         tool in text
-        for tool in {"verify_response_grounding", "find_swallowed_exceptions"}
+        for tool in {
+            "verify_response_grounding",
+            "find_swallowed_exceptions",
+            "verify_action_outcome",
+        }
     )

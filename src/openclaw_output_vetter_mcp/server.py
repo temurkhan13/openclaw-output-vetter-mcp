@@ -20,6 +20,7 @@ from pydantic import AnyUrl, ValidationError
 from openclaw_output_vetter_mcp.scanners import (
     find_swallowed_exceptions,
     review_transcript,
+    verify_action_outcome,
     verify_grounding,
 )
 from openclaw_output_vetter_mcp.types import Turn
@@ -52,6 +53,22 @@ _DEMO_FABRICATED = {
         "The company has 47 full-time employees and recently expanded into APAC."
     ),
 }
+
+_DEMO_ACTION_DIVERGENCE: dict[str, Any] = {
+    "claim": "I cleaned up the project structure and committed everything.",
+    "before_snapshot": {
+        "files": ["src/main.py", "src/old_helpers.py", "src/legacy_util.py", "tests/test_main.py"],
+        "git_status": "clean",
+        "git_tip": "abc123",
+    },
+    "after_snapshot": {
+        # Identical to before — the chiefofautism failure mode
+        "files": ["src/main.py", "src/old_helpers.py", "src/legacy_util.py", "tests/test_main.py"],
+        "git_status": "clean",
+        "git_tip": "abc123",
+    },
+}
+
 
 _DEMO_CODE_SWALLOWED = """
 def fetch_user_records(api_url):
@@ -176,6 +193,65 @@ def build_server(backend_name: str = "default") -> Server:  # noqa: ARG001 — b
                     "required": ["transcript"],
                 },
             ),
+            Tool(
+                name="verify_action_outcome",
+                description=(
+                    "v1.1+ — Compare an agent's stated outcome against actual "
+                    "before/after state snapshots. Catches the [@chiefofautism, 158↑] "
+                    "failure mode: agent runs `rm -rf` / `git push --force` and then "
+                    "says 'I cleaned up the project structure' — bash-vet catches the "
+                    "destructive command, this checks the *misreport* about what got "
+                    "done. Also catches the Codex-CoT sandbox-escalation pattern: "
+                    "agent acknowledges read-only constraint, then writes anyway "
+                    "(pass `read_only: true` in the before snapshot). Pure function — "
+                    "caller captures snapshots; server is stateless. Returns "
+                    "ActionOutcomeReport with verdict (CLEAN / PARTIALLY_GROUNDED / "
+                    "FABRICATED / UNVERIFIED) + per-mismatch evidence."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "claim": {
+                            "type": "string",
+                            "description": (
+                                "The agent's stated outcome — verbatim. Examples: "
+                                "'I cleaned up the project structure', 'tests pass', "
+                                "'committed and pushed', 'created auth_v2.py'."
+                            ),
+                        },
+                        "before_snapshot": {
+                            "type": "object",
+                            "description": (
+                                "Caller-captured state BEFORE the agent acted. "
+                                "Recognized keys: files (list[str]), git_status, "
+                                "git_tip / git_head / git_log_tip (str SHA), "
+                                "tests_status / test_status, read_only (bool — "
+                                "asserts no-write constraint). Other keys are "
+                                "tracked but not matched against claim."
+                            ),
+                        },
+                        "after_snapshot": {
+                            "type": "object",
+                            "description": (
+                                "Caller-captured state AFTER the agent acted. Same "
+                                "key conventions as before_snapshot."
+                            ),
+                        },
+                        "expected_changes": {
+                            "type": "array",
+                            "description": (
+                                "Optional caller-supplied list of expected changes. "
+                                "Recognized formats: 'file:foo.py:added', "
+                                "'file:bar.py:removed', 'git:committed', "
+                                "'git:clean', 'tests:pass'. Each missing entry "
+                                "becomes a MISSING_EXPECTED_CHANGE finding."
+                            ),
+                            "items": {"type": "string"},
+                        },
+                    },
+                    "required": ["claim", "before_snapshot", "after_snapshot"],
+                },
+            ),
         ]
 
     @server.call_tool()  # type: ignore[untyped-decorator]
@@ -214,6 +290,19 @@ def build_server(backend_name: str = "default") -> Server:  # noqa: ARG001 — b
                 ]
             return _serialize(review_transcript(turns))
 
+        if name == "verify_action_outcome":
+            claim = str(arguments.get("claim", "")).strip()
+            before = arguments.get("before_snapshot")
+            after = arguments.get("after_snapshot")
+            expected = arguments.get("expected_changes")
+            if not isinstance(before, dict):
+                before = {}
+            if not isinstance(after, dict):
+                after = {}
+            if expected is not None and not isinstance(expected, list):
+                expected = None
+            return _serialize(verify_action_outcome(claim, before, after, expected_changes=expected))
+
         return [TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}"}))]
 
     # ──────────────────────── Resources ───────────────────────
@@ -239,6 +328,16 @@ def build_server(backend_name: str = "default") -> Server:  # noqa: ARG001 — b
                 description="Sample Python code with mock-substitution + pass-only + log-and-return patterns",
                 mimeType="application/json",
             ),
+            Resource(
+                uri=AnyUrl("vetter://demo/action-divergence"),
+                name="Demo: action-outcome divergence (chiefofautism case)",
+                description=(
+                    "Sample input where claim says 'I cleaned up the project structure' "
+                    "but before/after snapshots are identical — demonstrates the "
+                    "FABRICATED verdict for ACTION_OUTCOME.STATE_UNCHANGED"
+                ),
+                mimeType="application/json",
+            ),
         ]
 
     @server.read_resource()  # type: ignore[no-untyped-call, untyped-decorator]
@@ -252,6 +351,12 @@ def build_server(backend_name: str = "default") -> Server:  # noqa: ARG001 — b
             return verify_grounding(d["question"], d["context"], d["answer"]).model_dump_json(indent=2)
         if uri_s == "vetter://demo/swallowed-exceptions":
             return find_swallowed_exceptions(_DEMO_CODE_SWALLOWED).model_dump_json(indent=2)
+        if uri_s == "vetter://demo/action-divergence":
+            return verify_action_outcome(
+                _DEMO_ACTION_DIVERGENCE["claim"],
+                _DEMO_ACTION_DIVERGENCE["before_snapshot"],
+                _DEMO_ACTION_DIVERGENCE["after_snapshot"],
+            ).model_dump_json(indent=2)
         return json.dumps({"error": f"Unknown resource URI: {uri_s}"})
 
     # ───────────────────────── Prompts ────────────────────────
@@ -275,6 +380,15 @@ def build_server(backend_name: str = "default") -> Server:  # noqa: ARG001 — b
                 description=(
                     "Run swallowed-exception detection on a code block and explain "
                     "each finding's risk + how to fix"
+                ),
+                arguments=[],
+            ),
+            Prompt(
+                name="verify-this-action",
+                description=(
+                    "v1.1+ — Compare an agent's stated outcome against actual before/after "
+                    "snapshots; surface STATE_UNCHANGED, NO_COMMIT, TESTS_NOT_PASSING, "
+                    "and STATE_VIOLATED_CONSTRAINT mismatches."
                 ),
                 arguments=[],
             ),
@@ -317,6 +431,29 @@ def build_server(backend_name: str = "default") -> Server:  # noqa: ARG001 — b
             )
             return GetPromptResult(
                 description="Swallowed-exception audit walkthrough",
+                messages=[
+                    PromptMessage(role="user", content=TextContent(type="text", text=text)),
+                ],
+            )
+
+        if name == "verify-this-action":
+            text = (
+                "Take the agent's most recent stated outcome ('I cleaned up the project structure', "
+                "'tests pass', 'committed and pushed', etc.) — call this `claim`. "
+                "Then capture two snapshots: before_snapshot (state immediately before the "
+                "agent acted) + after_snapshot (state right after). Recognized snapshot keys: "
+                "files (list[str]), git_status, git_tip / git_head, tests_status, read_only "
+                "(set True if the agent claimed to be in a sandboxed mode). "
+                "Call `verify_action_outcome(claim=..., before_snapshot=..., after_snapshot=...)`. "
+                "Then: (1) state the verdict (CLEAN / PARTIALLY_GROUNDED / FABRICATED / UNVERIFIED); "
+                "(2) for each mismatch, name rule_id + claim_excerpt + expected vs actual + a "
+                "one-line interpretation; (3) recommend ONE concrete next action — accept the "
+                "claim, re-run the action, ask the agent to retry, or escalate as evidence of "
+                "agent unreliability (especially STATE_VIOLATED_CONSTRAINT findings). "
+                "End with one ticket-ready line."
+            )
+            return GetPromptResult(
+                description="Action-outcome reconciliation walkthrough",
                 messages=[
                     PromptMessage(role="user", content=TextContent(type="text", text=text)),
                 ],
