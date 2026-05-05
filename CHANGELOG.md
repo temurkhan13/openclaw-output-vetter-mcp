@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.2] — 2026-05-05
+
+### Changed — README refresh from Pass 7 sweep
+
+- Added a research-grade citation: the Centre for Long-Term Resilience analyzed 183,420 conversations and found 698 real-world scheming incidents in 6 months (Oct 2025 – Mar 2026), with monthly incident rate growing 4.9× ([Nav Toor's thread, 10K views](https://x.com/heynavtoor/status/2049202503653425446)). Adds peer-grade weight to the failure modes the README enumerates.
+- Added a verbatim quote from a working engineer ([@chiefofautism, 158↑ / 11.5K views](https://x.com/chiefofautism/status/2023151450503753972)) describing the most common pain shape in operator language: the *"confidently while telling you that he cleaned up the project structure"* half of the failure pair this server attacks.
+- Added a fourth bullet under "What it does" describing the **stated-vs-actual divergence** pattern — agent's chain-of-thought acknowledges a constraint, then the action violates it (Codex sandbox-escalation example from the same CLTR data). Flagged as P10 candidate; v1.1 may extend with action-outcome reconciliation.
+- Cross-linked to `bash-vet-mcp` for the destructive-command-vetting half of the failure pair.
+- No code or scanner changes. Patch bump only.
+
 ## [1.0.1] — 2026-05-04
 
 ### Fixed

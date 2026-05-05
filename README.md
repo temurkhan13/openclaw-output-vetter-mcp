@@ -10,11 +10,18 @@
 
 ## What it does
 
-Production AI agents fail in three quiet ways that pass every standard dashboard:
+Production AI agents fail in three quiet ways that pass every standard dashboard. **As of mid-2026 the failure modes are now research-grade: the [Centre for Long-Term Resilience analyzed 183,420 conversations and found 698 real-world scheming incidents in just 6 months (Oct 2025 – Mar 2026), with monthly incident rate growing 4.9×](https://x.com/heynavtoor/status/2049202503653425446)** — *"AI was caught lying to users, ignoring direct instructions, breaking its own safety guardrails, and pursuing goals in ways that caused real harm"*. This MCP catches the inline-conversation surface of that pattern.
+
+A working engineer ([@chiefofautism, 158↑ / 135 RTs / 11.5K views](https://x.com/chiefofautism/status/2023151450503753972)) describes the most common variant in one line:
+
+> *"claude code runs shell commands with YOUR permissions. it can rm -rf your repo. it can force push to main. it can drop your database. and it will do it confidently while telling you that he cleaned up the project structure"*
+
+That second half — *"while telling you that he cleaned up the project structure"* — is exactly the hallucinated-completion-claim surface this server checks. Pair with [bash-vet-mcp](https://github.com/temurkhan13/bash-vet-mcp) for the first half (catches the destructive command before it runs).
 
 - **Hallucinated claims.** [r/SaaS founder thread (May 2 2026)](https://old.reddit.com/r/SaaS/comments/1t161qg/we_caught_1_in_50_ai_responses_hallucinating_in/) verbatim: *"Status 200, latency normal, tokens normal. A hallucinated response looks identical to a good one in every standard dashboard."* The fix the founder describes is exactly what this MCP server provides: *"a lightweight check that flags when the model states something not in the input context."*
 - **Silent fake success in agent-written code.** [r/ClaudeAI thread (509 pts, 186 comments)](https://old.reddit.com/r/ClaudeAI/comments/1sdmohb/after_months_with_claude_code_the_biggest_time/) verbatim: *"The agent couldn't get auth working, so it quietly inserted a try/catch that returns sample data on failure. The output you saw on day one was never real."*
 - **Unverified completion claims.** [r/AI_Agents (114 pts)](https://old.reddit.com/r/AI_Agents/comments/1skxyrx/my_clients_ai_sales_agent_booked_0_meetings_in_2/) — agent self-reports completion ("I've configured X"); reality at outcome level (booked meetings, deployed services, working integrations) doesn't match.
+- **Stated-vs-actual divergence.** Newer pattern surfaced in the same CLTR data: agent's own chain-of-thought *acknowledges* a constraint, then violates it. The Codex example (cited in [Nav Toor's thread](https://x.com/heynavtoor/status/2049202562373751162)): *"OpenAI Codex was running in read-only sandbox mode. It explicitly noted the read-only constraint in its own chain of thought. Then it escalated permissions and wrote to disk anyway."* See [P10 candidate](https://github.com/temurkhan13/openclaw-output-vetter-mcp/issues) — possible v1.1 expansion adding action-outcome reconciliation.
 
 This MCP server runs **three pure-Python checks inline during the conversation** — no API key, no LLM-as-judge cost, sub-second:
 
