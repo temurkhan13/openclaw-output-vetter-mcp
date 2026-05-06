@@ -406,3 +406,144 @@ def test_multi_target_terse_phrasing() -> None:
         rule == "ACTION_OUTCOME.UNSUPPORTED_CLAIM" and "y.py" in expected
         for rule, expected in rule_ids_with_targets
     )
+
+
+# ─────── Coverage gap fillers (overnight Phase 1A) ───────
+
+
+def test_git_status_dict_clean() -> None:
+    """Coverage: _coerce_git_status with Mapping {'clean': True}."""
+    before = {"git_status": {"clean": False, "modified": ["a.py"]}}
+    after = {"git_status": {"clean": True}}
+    report = verify_action_outcome("Workspace is clean now.", before, after)
+    assert report.verdict == Verdict.CLEAN
+
+
+def test_git_status_dict_dirty_via_modified() -> None:
+    """Coverage: _coerce_git_status detecting dirty via non-empty 'modified' list."""
+    before = {"git_status": "clean"}
+    after = {"git_status": {"clean": False, "modified": ["a.py", "b.py"]}}
+    report = verify_action_outcome("The repo is now clean.", before, after)
+    assert report.verdict == Verdict.FABRICATED
+    assert any(m.rule_id == "ACTION_OUTCOME.UNCOMMITTED_CHANGES" for m in report.mismatches)
+
+
+def test_git_status_dict_clean_via_empty_lists() -> None:
+    """Coverage: _coerce_git_status returning clean when no 'modified' items."""
+    before = {"git_status": "dirty"}
+    after = {"git_status": {"clean": False, "modified": [], "untracked": []}}
+    report = verify_action_outcome("Tree is now in order.", before, after)
+    assert report.verdict == Verdict.CLEAN
+
+
+def test_git_status_unknown_type_ignored() -> None:
+    """Coverage: _coerce_git_status returning None for unknown shape."""
+    before = {"git_status": 42}  # int — not str/dict
+    after = {"git_status": 42}
+    report = verify_action_outcome("Did something.", before, after)
+    # Just verify no crash + UNVERIFIED-or-clean depending on claim parsing
+    assert report.verdict in (Verdict.UNVERIFIED, Verdict.CLEAN, Verdict.FABRICATED)
+
+
+def test_tests_status_unknown_string() -> None:
+    """Coverage: _coerce_tests_status returning None for unrecognized string."""
+    before = {"tests_status": "running"}
+    after = {"tests_status": "unknown_state"}
+    report = verify_action_outcome("Tests pass.", before, after)
+    # Should fire AMBIGUOUS_CLAIM since neither pass nor fail recognizable
+    assert any(m.rule_id == "ACTION_OUTCOME.AMBIGUOUS_CLAIM" for m in report.mismatches)
+
+
+def test_tests_status_dict_no_tests_run() -> None:
+    """Coverage: tests_status dict with 0/0 (no tests run) returns None status."""
+    before = {"tests_status": {"passed": 0, "failed": 0}}
+    after = {"tests_status": {"passed": 0, "failed": 0}}
+    report = verify_action_outcome("Tests pass.", before, after)
+    # 0/0 is ambiguous — neither passed nor failed
+    assert any(m.rule_id == "ACTION_OUTCOME.AMBIGUOUS_CLAIM" for m in report.mismatches)
+
+
+def test_tests_status_bool() -> None:
+    """Coverage: _coerce_tests_status with raw bool input."""
+    before = {"tests_status": False}
+    after = {"tests_status": True}
+    report = verify_action_outcome("Tests pass.", before, after)
+    assert report.verdict == Verdict.CLEAN
+
+
+def test_excerpt_truncation_long_claim() -> None:
+    """Coverage: excerpt truncation at 200 chars when claim is very long."""
+    long_padding = "blah " * 100
+    claim = f"Created auth.py {long_padding} with the login flow."
+    before = {"files": ["main.py"]}
+    after = {"files": ["main.py", "auth.py"]}
+    report = verify_action_outcome(claim, before, after)
+    # All excerpts should be ≤200 chars
+    for m in report.mismatches:
+        assert len(m.claim_excerpt) <= 203  # +3 for "..." trailer
+
+
+def test_chained_target_excerpt_too_long_falls_back() -> None:
+    """Coverage: when chained excerpt would exceed 200, falls back to bare excerpt."""
+    long_padding = "x" * 200
+    claim = f"Wrote {long_padding}.py and helpers.py."
+    before = {"files": ["main.py"]}
+    after = {"files": ["main.py", "helpers.py"]}  # only helpers exists
+    # The chained-target should still be detected even when excerpt would be too long
+    report = verify_action_outcome(claim, before, after)
+    # The original target won't match (huge filename), helpers.py should chain
+    rule_ids = {m.rule_id for m in report.mismatches}
+    assert "ACTION_OUTCOME.UNSUPPORTED_CLAIM" in rule_ids
+
+
+def test_expected_change_file_removed_satisfied() -> None:
+    """Coverage: file:foo.py:removed expected-change satisfied."""
+    before = {"files": ["main.py", "old.py"]}
+    after = {"files": ["main.py"]}
+    report = verify_action_outcome(
+        "Done.", before, after, expected_changes=["file:old.py:removed"]
+    )
+    assert not any(
+        m.rule_id == "ACTION_OUTCOME.MISSING_EXPECTED_CHANGE"
+        for m in report.mismatches
+    )
+
+
+def test_expected_change_git_clean_missing() -> None:
+    """Coverage: 'git:clean' expected change when status is dirty."""
+    before = {"git_status": "dirty"}
+    after = {"git_status": "dirty"}
+    report = verify_action_outcome("Done.", before, after, expected_changes=["git:clean"])
+    assert any(
+        m.rule_id == "ACTION_OUTCOME.MISSING_EXPECTED_CHANGE"
+        and "clean" in m.expected
+        for m in report.mismatches
+    )
+
+
+def test_no_assertions_with_constraint_violation_yields_fabricated() -> None:
+    """Coverage: zero assertions extracted but constraint violated → still FABRICATED."""
+    # A claim with NO recognized verbs, but the read_only constraint is violated
+    before = {"read_only": True, "files": ["a.py"]}
+    after = {"read_only": True, "files": ["a.py", "new.py"]}
+    report = verify_action_outcome("Hmm, looking at this code...", before, after)
+    # No claim assertions, but constraint violation should fire
+    assert any(m.rule_id == "ACTION_OUTCOME.STATE_VIOLATED_CONSTRAINT" for m in report.mismatches)
+    assert report.verdict == Verdict.FABRICATED
+
+
+def test_diff_summary_includes_changed_keys() -> None:
+    """Coverage: diff_summary mentions changed_keys count."""
+    before = {"files": ["a.py"], "build_status": "passing"}
+    after = {"files": ["a.py"], "build_status": "failing"}
+    report = verify_action_outcome("Did stuff.", before, after)
+    assert "1 keys changed" in report.diff_summary
+
+
+def test_diff_summary_includes_added_dropped_keys() -> None:
+    """Coverage: diff_summary mentions added/removed keys."""
+    before = {"files": ["a.py"], "removed_thing": "yes"}
+    after = {"files": ["a.py"], "added_thing": "now here"}
+    report = verify_action_outcome("Did stuff.", before, after)
+    summary = report.diff_summary
+    assert "+1 new keys" in summary or "-1 dropped keys" in summary

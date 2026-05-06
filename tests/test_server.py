@@ -319,3 +319,66 @@ async def test_get_prompt_returns_walkthrough_text(prompt_name: str) -> None:
             "verify_action_outcome",
         }
     )
+
+
+# ─────── Coverage gap fillers (overnight Phase 1A) ───────
+
+# Note: server.py defensive type coercion (non-dict snapshots → {} etc.) is
+# unreachable via the normal MCP request handler because the protocol's JSON
+# schema validation rejects type-mismatched arguments BEFORE reaching the
+# call_tool dispatch. Those defensive coercions exist for safety but can't be
+# exercised through the public surface — accepting as known-uncovered.
+
+
+async def test_read_resource_action_divergence_demo() -> None:
+    """Coverage: server.py — action-divergence demo URI dispatch."""
+    from mcp.types import ReadResourceRequest, ReadResourceRequestParams
+
+    server = build_server()
+    handler = server.request_handlers[ReadResourceRequest]
+    from pydantic import AnyUrl
+
+    result = await handler(
+        ReadResourceRequest(
+            method="resources/read",
+            params=ReadResourceRequestParams(uri=AnyUrl("vetter://demo/action-divergence")),
+        )
+    )
+    text = result.root.contents[0].text
+    parsed = json.loads(text)
+    assert parsed["verdict"] == "fabricated"
+
+
+async def test_read_resource_unknown_uri_returns_error() -> None:
+    """Coverage: server.py — unknown URI fallback."""
+    from mcp.types import ReadResourceRequest, ReadResourceRequestParams
+
+    server = build_server()
+    handler = server.request_handlers[ReadResourceRequest]
+    from pydantic import AnyUrl
+
+    result = await handler(
+        ReadResourceRequest(
+            method="resources/read",
+            params=ReadResourceRequestParams(uri=AnyUrl("vetter://demo/does-not-exist")),
+        )
+    )
+    text = result.root.contents[0].text
+    parsed = json.loads(text)
+    assert "error" in parsed
+
+
+async def test_get_prompt_unknown_returns_unknown_result() -> None:
+    """Coverage: server.py — unknown prompt name fallback."""
+    from mcp.types import GetPromptRequest, GetPromptRequestParams
+
+    server = build_server()
+    handler = server.request_handlers[GetPromptRequest]
+    result = await handler(
+        GetPromptRequest(
+            method="prompts/get",
+            params=GetPromptRequestParams(name="not-a-real-prompt", arguments={}),
+        )
+    )
+    text = result.root.messages[0].content.text
+    assert "Unknown prompt" in text or "not-a-real-prompt" in text
