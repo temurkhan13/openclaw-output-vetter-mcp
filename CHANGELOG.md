@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.1] — 2026-05-06
+
+### Changed — overnight Phase 1A + 2A docs/test refresh
+
+Bundles three commits already on main as a single PyPI republish:
+
+- [`c2bbeee`](https://github.com/temurkhan13/openclaw-output-vetter-mcp/commit/c2bbeee) **test:** server-protocol coverage gap-fillers (Phase 1A). Tests-only — exercises handler registration + tool / resource / prompt routing paths that previously had only end-user-API coverage.
+- [`99c24a8`](https://github.com/temurkhan13/openclaw-output-vetter-mcp/commit/99c24a8) **docs:** SPEC.md refresh covering the v1.1 (`verify_action_outcome`) and v1.2 (chained-claim parser) feature additions. Pre-existing SPEC was at v1.0-era surface; now matches what's shipped.
+- [`6946ab2`](https://github.com/temurkhan13/openclaw-output-vetter-mcp/commit/6946ab2) **docs:** Related-section bundle reference now reads "7-pack" / "6 others" (was "5 others / 6-pack" mid-week as the suite grew).
+
+No code or detection-rule changes. Patch bump republishes to PyPI so the SPEC + Related text matches the rendered "Project description" page.
+
 ## [1.2.0] — 2026-05-05
 
 ### Improved — claim parser handles chained / multi-target phrasings
@@ -107,6 +119,10 @@ P10 was absorbed into output-vetter rather than promoted to a standalone product
 
 This is P06 in the venture Pipeline (`Pipeline/opportunities.md` — see vault). Surfaced from r/ClaudeAI silent-fake-success thread (Pass 2) + r/AI_Agents 0-meeting agent thread (Pass 2) + r/SaaS hallucination thread (Pass 3) — three independent buyer-vocabulary citations clearing the ≥3 graduation gate. Incumbent-validated against DeepEval (Pass 4) — DeepEval's MCP is eval-pipeline-orchestration scope (run named eval suites, inspect dataset history); P06's differentiator is single-transcript inline scope (verify THIS conversation right now). Different surface, same metric philosophy.
 
-[Unreleased]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.0.2...v1.1.0
+[1.0.2]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/releases/tag/v1.0.0
