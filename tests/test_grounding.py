@@ -148,6 +148,82 @@ def test_verify_grounding_summary_mentions_claim_count() -> None:
     assert str(result.total_claims) in result.summary or str(result.ungrounded_count) in result.summary
 
 
+# ─────────── v1.3 — stem-Jaccard + entity-mismatch ───────────
+
+
+def test_v13_paraphrase_grounded_via_stemming() -> None:
+    """`mutates` ↔ `mutating` ↔ `mutation` should all stem to a common form,
+    so a paraphrased grounded claim no longer reads as fabrication."""
+    result = verify_grounding(
+        question="Q?",
+        context="In Python, lists are mutable data structures - you can append or modify them.",
+        answer="Python supports list mutation after creation.",
+    )
+    assert result.verdict == Verdict.CLEAN, (
+        f"paraphrase should be grounded; got verdict={result.verdict}, "
+        f"score={result.overall_grounding_score:.2f}"
+    )
+
+
+def test_v13_entity_mismatch_flags_misattribution() -> None:
+    """Eiffel-Tower-in-Berlin: vocabulary overlaps with a Paris-context (entity
+    'Eiffel Tower' appears) but the location entity 'Berlin' is unsupported,
+    which must flag the claim despite high stem overlap."""
+    result = verify_grounding(
+        question="Where is the Eiffel Tower?",
+        context="Paris is the capital of France and home to the Eiffel Tower.",
+        answer="The Eiffel Tower is in Berlin.",
+    )
+    assert result.verdict == Verdict.FABRICATED, (
+        f"entity mismatch should fabricate-flag; got verdict={result.verdict}"
+    )
+    # The claim's `unsupported_entities` should include 'berlin'
+    assert any("berlin" in c.unsupported_entities for c in result.claims), (
+        f"expected 'berlin' in unsupported_entities; got "
+        f"{[c.unsupported_entities for c in result.claims]}"
+    )
+
+
+def test_v13_confidence_note_always_populated() -> None:
+    """Every response must carry the lexical-scanner-limits note so callers
+    can surface the limitation alongside the verdict."""
+    result = verify_grounding(
+        question="Q?",
+        context="Some context here.",
+        answer="Some answer that mentions context here.",
+    )
+    assert result.confidence_note  # non-empty
+    assert "lexical" in result.confidence_note.lower()
+    assert "does not catch" in result.confidence_note.lower() or "not catch" in result.confidence_note.lower()
+
+
+def test_v13_unsupported_entities_field_present_on_clean_claims() -> None:
+    """Even CLEAN claims expose the entities field (empty list, not missing)."""
+    result = verify_grounding(
+        question="Q?",
+        context="The office is in London.",
+        answer="The office is in London.",
+    )
+    assert all(isinstance(c.unsupported_entities, list) for c in result.claims)
+
+
+def test_v13_stop_words_dont_dilute_overlap() -> None:
+    """Stop-words (the/is/are/in/of) should not carry grounding signal — the
+    substantive concepts should drive the verdict, not function words."""
+    # Both texts have lots of function-word overlap but only 'cars' as substantive match.
+    # Pre-v1.3 the high stop-word overlap could have crossed threshold; v1.3 filters them.
+    result = verify_grounding(
+        question="Q?",
+        context="There are some cars in the garage.",
+        answer="The pizza is in the oven.",
+    )
+    # 'cars'/'pizza' don't share a stem and have no entity overlap → should be ungrounded
+    assert result.verdict in (Verdict.FABRICATED, Verdict.PARTIALLY_GROUNDED), (
+        f"high stop-word overlap should not paper over disjoint substantive content; "
+        f"got verdict={result.verdict}, score={result.overall_grounding_score:.2f}"
+    )
+
+
 @pytest.mark.parametrize(
     "context,answer,expected_verdict",
     [

@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-05-06
+
+### Improved — `verify_response_grounding` is no longer pure bag-of-words Jaccard
+
+Real-input adversarial validation against the v1.2.1 build found the grounding scanner failed 4 of 5 cases — the bag-of-words Jaccard approach missed paraphrased grounded claims and missed entity-misattribution fabrications. v1.3.0 closes 3 of those 4 failures with pure-Python improvements (no new dependencies, "sub-second / no API key / local" pitch preserved). The remaining 1 failure is genuinely outside the reach of lexical methods — it's now explicitly disclosed in every response via a new `confidence_note` field.
+
+**Algorithm changes:**
+
+- **Stem-Jaccard instead of token-Jaccard.** Aggressive suffix-stripping stemmer (`-ation`, `-able`, `-tion`, `-ing`, `-ed`, `-s` etc.) collapses morphological variants to a common root. `mutates` / `mutating` / `mutation` / `mutable` all share the stem `mut`. The paraphrase test (*"Python supports list mutation"* against *"lists are mutable"*) now correctly classifies as grounded.
+- **Stop-word filtering before overlap computation.** Function words (`the`, `is`, `are`, `in`, `of`, `you`, `can`, etc.) don't carry grounding signal — they were diluting the Jaccard score. v1.3 filters them so substantive concepts drive the verdict.
+- **Entity-mismatch detection.** New: extract proper nouns + numbers from each claim. Any claim entity that doesn't appear anywhere in the context is added to a `unsupported_entities` field on the claim, and the claim is marked ungrounded regardless of stem-overlap. This catches misattribution like *"The Eiffel Tower is in Berlin"* against a Paris-context — vocabulary overlaps (Eiffel Tower is in both) but the location entity `Berlin` is unsupported.
+
+**Honest disclosure of remaining limits:**
+
+The response now includes a `confidence_note` field, populated on every call, that documents:
+- What the lexical scanner DOES catch (direct fabrication, paraphrase via stems, entity misattribution)
+- What it DOES NOT catch:
+  - **World-knowledge inference** — *"Python is older than JavaScript"* given dates in context. The inference is correct but lexically distant.
+  - **Vocabulary-overlap fabrications** where the wrong subject is associated with the right object — *"Honeybees produce silk"* against a context that mentions both honeybees and silk separately. Bag-of-stems sees the overlap and concludes grounded; only relation-level parsing or NLI can catch this.
+
+For those failure modes, the recommendation is layered: this scanner inline on every response (sub-second), plus periodic LLM-as-judge or NLI-based deep verification.
+
+**New types:**
+- `GroundingClaim.unsupported_entities: list[str]` — proper nouns / numbers in the claim that don't appear in the context.
+- `GroundingResult.confidence_note: str` — always populated; clients should surface alongside the verdict.
+
+**Validation results (against `C:/Users/hp/_mcp-validation-2026-05-06/test_output_vetter_v2.py` adversarial cases):**
+
+| Test case | v1.2.1 | v1.3.0 |
+|----------|:------:|:------:|
+| Literal-overlap grounded | PASS | PASS |
+| Paraphrase grounded (`mutates` ≈ `mutable`) | FAIL (false-fabricate) | **PASS** (stem-Jaccard + stop-word filter) |
+| Inferred grounded (Python older than JS by dates) | FAIL (false-fabricate) | **PASS** (entity-overlap on `Python`/`JavaScript` is enough) |
+| Eiffel-Tower-in-Berlin (entity misattribution) | FAIL (false-clean) | **PASS** (entity-mismatch flag on `Berlin`) |
+| Honeybees-produce-silk (wrong subject, overlap vocabulary) | FAIL (false-clean) | FAIL (genuinely needs semantic; documented in confidence_note) |
+
+**Net: 1/5 → 4/5.** ruff + mypy strict clean. 109 → 114 tests passing (+5 for v1.3 behavior).
+
+**Why minor version bump:** types added new fields (`unsupported_entities`, `confidence_note`). Existing field shapes preserved — backward compatible reads. New fields default-populated so existing clients don't break.
+
 ## [1.2.1] — 2026-05-06
 
 ### Changed — overnight Phase 1A + 2A docs/test refresh
@@ -119,7 +159,8 @@ P10 was absorbed into output-vetter rather than promoted to a standalone product
 
 This is P06 in the venture Pipeline (`Pipeline/opportunities.md` — see vault). Surfaced from r/ClaudeAI silent-fake-success thread (Pass 2) + r/AI_Agents 0-meeting agent thread (Pass 2) + r/SaaS hallucination thread (Pass 3) — three independent buyer-vocabulary citations clearing the ≥3 graduation gate. Incumbent-validated against DeepEval (Pass 4) — DeepEval's MCP is eval-pipeline-orchestration scope (run named eval suites, inspect dataset history); P06's differentiator is single-transcript inline scope (verify THIS conversation right now). Different surface, same metric philosophy.
 
-[Unreleased]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/temurkhan13/openclaw-output-vetter-mcp/compare/v1.0.2...v1.1.0

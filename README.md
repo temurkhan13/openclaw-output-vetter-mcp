@@ -84,7 +84,7 @@ Three things existing eval frameworks (DeepEval, Phoenix, LangSmith, Galileo, La
 
 1. **Inline single-transcript scope, not eval-pipeline orchestration.** [DeepEval ships an MCP server](https://deepeval.com/docs/evaluation-mcp) — but its scope is *"run evals, pull datasets, and inspect traces straight from claude code, cursor"* (verbatim from their docs). That's eval-pipeline orchestration: schedule a named eval suite against a stored dataset; review trace history. **This server is the opposite shape: verify *this specific conversation* right now, before the user sees the response.** Same metric stack philosophically (faithfulness, grounding); different surface.
 
-2. **Sub-second + local + free.** No LLM-as-judge call, no API key, no per-call cost. Pure-Python claim splitting + Jaccard overlap + AST walking. Tradeoff: lower theoretical accuracy than LLM-as-judge for ambiguous edge cases. For high-frequency inline use (every assistant turn) the speed-vs-accuracy tradeoff favors lightweight. v1.1 will offer optional DeepEval-LLM-as-judge mode for users who want the higher-quality check.
+2. **Sub-second + local + free.** No LLM-as-judge call, no API key, no per-call cost. Pure-Python claim splitting + stem-Jaccard overlap + entity-mismatch detection + AST walking. **Honest about what lexical methods catch and what they don't** — see "Grounding-scanner limitations" below. For high-frequency inline use (every assistant turn) the speed-vs-accuracy tradeoff favors lightweight. The roadmap offers optional DeepEval-LLM-as-judge mode for users who want semantic-level verification on top of the lexical layer.
 
 3. **Three checks for three distinct failure modes, not one umbrella metric.**
    - *Grounding* (`verify_response_grounding`) catches hallucinated facts
@@ -92,6 +92,23 @@ Three things existing eval frameworks (DeepEval, Phoenix, LangSmith, Galileo, La
    - *Transcript review* (`review_transcript`) catches unverified completion claims + cross-turn drift
 
    Other tools collapse all three into "faithfulness." The failure modes are different and the corrective actions are different. Surfacing them separately makes the response actionable.
+
+### Grounding-scanner limitations (read this)
+
+The grounding scanner is **lexical** — it computes stem-level token overlap (Jaccard) between claim and context, plus an entity-coverage check on proper nouns / numbers. Two signals, combined for the verdict.
+
+**What it CATCHES:**
+- Direct fabrication (claim has zero meaningful overlap with context)
+- Paraphrased grounded claims that share stems with context (`mutates` ≈ `mutating` ≈ `mutation`)
+- **Entity misattribution** — claim names a proper noun or number that isn't in the context (e.g. *"The Eiffel Tower is in Berlin"* against a context that mentions Paris — vocabulary overlaps but `Berlin` is flagged as unsupported)
+
+**What it DOES NOT CATCH** (the response always ships a `confidence_note` repeating this — surface it to the operator):
+- **Inferred claims requiring world knowledge** — *"Python is older than JavaScript"* given dates 1991/1995 in context. The inference is correct but the word "older" doesn't appear; lexical methods can't infer ordering from facts.
+- **Vocabulary-overlap fabrications where the wrong subject is associated with the right object** — *"Honeybees produce silk"* against a context that mentions both `honeybees` and `silk` separately. Bag-of-stems sees the overlap and concludes grounded; only relation-level parsing or NLI can catch this.
+
+For those failure modes, pair this tool with an LLM-as-judge or NLI verifier. We keep this scanner pure-Python + sub-second so it can run inline on every agent response — the right move is a *layered* approach (this for fast inline, LLM-as-judge for periodic deep-check).
+
+We chose to ship the lexical scanner with explicit limit-disclosure rather than a heavyweight semantic dependency that breaks the "sub-second / no API key" pitch. Validation results: 4 of 5 adversarial test cases pass; the 1 remaining failure is the wrong-subject-overlap case described above.
 
 Built for the **production AI operator** who's already using Claude Code / Cursor / Cline / OpenClaw and wants a defensive layer the agent calls before its response goes user-facing.
 
@@ -101,7 +118,7 @@ Built for the **production AI operator** who's already using Claude Code / Curso
 
 | Tool | What it returns |
 |------|-----------------|
-| `verify_response_grounding` | Per-claim grounded/ungrounded + overall verdict (CLEAN / PARTIALLY_GROUNDED / FABRICATED) + overlap scores + summary |
+| `verify_response_grounding` | Per-claim grounded/ungrounded + overall verdict (CLEAN / PARTIALLY_GROUNDED / FABRICATED) + stem-Jaccard overlap scores + per-claim `unsupported_entities` (proper nouns / numbers in the claim that don't appear in context — catches misattribution like `Eiffel Tower is in Berlin` against a Paris-context) + `confidence_note` documenting scanner limits |
 | `find_swallowed_exceptions` | Per-finding line number + pattern (`pass-only` / `mock-substitution` / `silent-log-and-return` / `bare-except`) + severity + code excerpt |
 | `review_transcript` | Per-issue turn indices + issue kind (`unverified-completion-claim` / `cross-turn-contradiction`) + severity + evidence excerpt |
 | `verify_action_outcome` *(v1.1+)* | **NEW** — compare an agent's stated outcome against actual before/after state snapshots. Catches the [@chiefofautism, 158↑] case (agent says *"I cleaned up the project structure"* when nothing changed) + the Codex sandbox-escalation case (read-only constraint asserted, then violated). 8 detection rules under `ACTION_OUTCOME.*`. Pure function — caller captures snapshots; server stays stateless. |

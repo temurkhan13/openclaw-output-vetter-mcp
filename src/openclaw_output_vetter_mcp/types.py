@@ -46,9 +46,14 @@ class GroundingClaim(BaseModel):
     """The extracted claim sentence."""
     grounded: bool
     overlap_score: float
-    """0.0–1.0: how much overlap with the closest context chunk."""
+    """0.0–1.0: how much stem-Jaccard overlap with the closest context chunk."""
     closest_context_excerpt: str | None = None
     """The context chunk that scored highest (truncated to 200 chars). None when no context overlap."""
+    unsupported_entities: list[str] = Field(default_factory=list)
+    """Proper nouns or numbers in the claim that don't appear anywhere in the context.
+    A non-empty list is a strong signal of fabrication even when overlap_score is high
+    (e.g. `Eiffel Tower is in Berlin` against a context about Paris — vocabulary overlaps
+    but the location entity Berlin is unsupported)."""
 
 
 class GroundingResult(BaseModel):
@@ -64,6 +69,9 @@ class GroundingResult(BaseModel):
     """0.0–1.0: average overlap_score across all claims."""
     claims: list[GroundingClaim]
     summary: str
+    confidence_note: str = ""
+    """Honest disclosure of what this scanner does and doesn't catch.
+    Always populated — clients should surface it in any UI that shows the verdict."""
 
 
 # ─────────── Swallowed-exception scanner ───────────
