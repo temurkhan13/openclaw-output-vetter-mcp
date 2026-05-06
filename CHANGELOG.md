@@ -53,9 +53,9 @@ For those failure modes, the recommendation is layered: this scanner inline on e
 
 Bundles three commits already on main as a single PyPI republish:
 
-- [`c2bbeee`](https://github.com/temurkhan13/openclaw-output-vetter-mcp/commit/c2bbeee) **test:** server-protocol coverage gap-fillers (Phase 1A). Tests-only — exercises handler registration + tool / resource / prompt routing paths that previously had only end-user-API coverage.
-- [`99c24a8`](https://github.com/temurkhan13/openclaw-output-vetter-mcp/commit/99c24a8) **docs:** SPEC.md refresh covering the v1.1 (`verify_action_outcome`) and v1.2 (chained-claim parser) feature additions. Pre-existing SPEC was at v1.0-era surface; now matches what's shipped.
-- [`6946ab2`](https://github.com/temurkhan13/openclaw-output-vetter-mcp/commit/6946ab2) **docs:** Related-section bundle reference now reads "7-pack" / "6 others" (was "5 others / 6-pack" mid-week as the suite grew).
+- [`7574ba3`](https://github.com/temurkhan13/openclaw-output-vetter-mcp/commit/7574ba3) **test:** server-protocol coverage gap-fillers (Phase 1A). Tests-only — exercises handler registration + tool / resource / prompt routing paths that previously had only end-user-API coverage.
+- [`1cb9912`](https://github.com/temurkhan13/openclaw-output-vetter-mcp/commit/1cb9912) **docs:** SPEC.md refresh covering the v1.1 (`verify_action_outcome`) and v1.2 (chained-claim parser) feature additions. Pre-existing SPEC was at v1.0-era surface; now matches what's shipped.
+- [`e011cb9`](https://github.com/temurkhan13/openclaw-output-vetter-mcp/commit/e011cb9) **docs:** Related-section bundle reference now reads "7-pack" / "6 others" (was "5 others / 6-pack" mid-week as the suite grew).
 
 No code or detection-rule changes. Patch bump republishes to PyPI so the SPEC + Related text matches the rendered "Project description" page.
 
