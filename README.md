@@ -210,7 +210,7 @@ MIT — see [LICENSE](./LICENSE).
 
 ## Related
 
-- [Production-AI MCP Suite (Gumroad bundle)](https://temurah.gumroad.com/l/production-ai-mcp-suite) — this server plus 5 others in one curated bundle
+- [Production-AI MCP Suite (Gumroad bundle)](https://temurah.gumroad.com/l/production-ai-mcp-suite) — this server plus 6 others in one curated 7-pack bundle
 - [silentwatch-mcp](https://github.com/temurkhan13/silentwatch-mcp) — cron silent-failure detection
 - [openclaw-health-mcp](https://github.com/temurkhan13/openclaw-health-mcp) — deployment health
 - [openclaw-cost-tracker-mcp](https://github.com/temurkhan13/openclaw-cost-tracker-mcp) — token-cost telemetry + 429 prediction (v1.1+)
