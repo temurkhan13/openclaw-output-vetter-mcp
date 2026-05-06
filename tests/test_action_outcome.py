@@ -307,3 +307,102 @@ def test_files_can_be_set_or_tuple() -> None:
     after = {"files": {"a.py", "b.py"}}
     report = verify_action_outcome("Created b.py.", before, after)
     assert report.verdict == Verdict.CLEAN
+
+
+# ─────── Multi-target expansion (v1.2+) ───────
+
+
+def test_multi_target_create_with_and() -> None:
+    """'Created A and B' should split into two assertions."""
+    before = {"files": ["main.py"]}
+    after = {"files": ["main.py", "auth.py", "helpers.py"]}
+    report = verify_action_outcome(
+        "Created auth.py and helpers.py.", before, after
+    )
+    assert report.verdict == Verdict.CLEAN
+    assert report.matched_count >= 2
+
+
+def test_multi_target_create_one_missing_is_partial() -> None:
+    """'Created A and B' where only A exists in diff → PARTIALLY_GROUNDED."""
+    before = {"files": ["main.py"]}
+    after = {"files": ["main.py", "auth.py"]}  # only auth.py created
+    report = verify_action_outcome(
+        "Created auth.py and helpers.py.", before, after
+    )
+    assert report.matched_count >= 1
+    assert report.mismatched_count >= 1
+    rule_ids = {m.rule_id for m in report.mismatches}
+    assert "ACTION_OUTCOME.UNSUPPORTED_CLAIM" in rule_ids
+    # And the missing target should be helpers.py specifically
+    assert any("helpers.py" in m.expected for m in report.mismatches)
+
+
+def test_multi_target_create_comma_separated() -> None:
+    """'Created A, B, and C' should split into three assertions."""
+    before = {"files": ["main.py"]}
+    after = {"files": ["main.py", "a.py", "b.py", "c.py"]}
+    report = verify_action_outcome(
+        "Created a.py, b.py, and c.py.", before, after
+    )
+    assert report.verdict == Verdict.CLEAN
+    assert report.matched_count >= 3
+
+
+def test_multi_target_delete_with_and() -> None:
+    """'Removed A and B' should split into two assertions."""
+    before = {"files": ["main.py", "old.py", "legacy.py"]}
+    after = {"files": ["main.py"]}
+    report = verify_action_outcome(
+        "Removed old.py and legacy.py.", before, after
+    )
+    assert report.verdict == Verdict.CLEAN
+    assert report.matched_count >= 2
+
+
+def test_multi_target_delete_only_one_actually_removed() -> None:
+    """'Deleted A and B' where only A was removed → mismatch on B."""
+    before = {"files": ["main.py", "old.py", "legacy.py"]}
+    after = {"files": ["main.py", "legacy.py"]}  # only old.py removed
+    report = verify_action_outcome(
+        "Deleted old.py and legacy.py.", before, after
+    )
+    rule_ids_with_targets = [
+        (m.rule_id, m.expected) for m in report.mismatches
+    ]
+    assert any(
+        rule == "ACTION_OUTCOME.UNSUPPORTED_CLAIM" and "legacy.py" in expected
+        for rule, expected in rule_ids_with_targets
+    )
+
+
+def test_multi_target_does_not_drag_across_sentence() -> None:
+    """'Created auth.py. Then refactored helpers.py.' should NOT chain helpers.py
+    as a created_file (the sentence boundary cuts the multi-target expansion)."""
+    before = {"files": ["main.py", "helpers.py"]}
+    after = {"files": ["main.py", "helpers.py", "auth.py"]}
+    report = verify_action_outcome(
+        "Created auth.py. Then refactored helpers.py.", before, after
+    )
+    # helpers.py was NOT created (it existed before); if we incorrectly chained it
+    # as a "created" assertion, we'd get an UNSUPPORTED_CLAIM finding for it.
+    # The sentence boundary should prevent that.
+    assert not any(
+        m.rule_id == "ACTION_OUTCOME.UNSUPPORTED_CLAIM"
+        and "helpers.py" in m.expected
+        for m in report.mismatches
+    )
+
+
+def test_multi_target_terse_phrasing() -> None:
+    """Bare 'Wrote A and B' (no 'file' keyword) should still split."""
+    before = {"files": ["main.py"]}
+    after = {"files": ["main.py", "x.py"]}  # only one of two
+    report = verify_action_outcome("Wrote x.py and y.py.", before, after)
+    rule_ids_with_targets = [
+        (m.rule_id, m.expected) for m in report.mismatches
+    ]
+    assert any(
+        rule == "ACTION_OUTCOME.UNSUPPORTED_CLAIM" and "y.py" in expected
+        for rule, expected in rule_ids_with_targets
+    )

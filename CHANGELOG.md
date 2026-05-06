@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-05-05
+
+### Improved — claim parser handles chained / multi-target phrasings
+
+`verify_action_outcome` now correctly splits chained file-creation/deletion claims into per-file assertions. Previously, "Created auth.py and helpers.py" only checked `auth.py` against the diff; "Removed old.py, legacy.py, and util.py" only checked `old.py`.
+
+**v1.2 supports** (post-pass expansion after the primary verb-anchored regex match):
+- "Created A and B" — splits into 2 assertions
+- "Created A, B" — splits into 2
+- "Created A, B, and C" — splits into 3
+- "Removed A and B" / "Deleted A, B" — same shape for deletions
+- "Wrote x.py and y.py" — terse phrasing without "file" keyword
+- Sentence boundaries are respected: "Created auth.py. Then refactored helpers.py." does NOT chain `helpers.py` as a created assertion (the period before " Then" terminates the multi-target scan)
+
+The expansion uses a separator regex `(?:\s*,\s*(?:and\s+)?|\s+and\s+)` followed by a filename-like token. Sentence boundaries are now period-or-question-or-exclamation **followed by whitespace or end-of-string** — periods inside filenames (`.py`, `.tsx`) no longer terminate the scan.
+
+7 new tests added covering chain expansion + sentence-boundary protection. **92 total tests passing**, ruff + mypy strict clean.
+
+### Architecture note
+The improvement was identified in v1.1's release-day testing (one v1.1 test had to be rephrased to use 2 sentences instead of "and" because the parser couldn't chain). v1.2 fixes the parser instead of working around it. Listed in [[Pipeline/opportunities]] as the v1.2-backlog candidate; shipped same-day.
+
 ## [1.1.0] — 2026-05-05
 
 ### Added — action-outcome verifier (P10 ABSORB)

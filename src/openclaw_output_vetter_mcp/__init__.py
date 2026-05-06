@@ -1,6 +1,6 @@
 """openclaw-output-vetter-mcp — MCP server for verifying AI agent claims vs reality."""
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 from openclaw_output_vetter_mcp.server import build_server
 

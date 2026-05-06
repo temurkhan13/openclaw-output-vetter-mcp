@@ -66,6 +66,14 @@ from openclaw_output_vetter_mcp.types import (
 
 SCANNER_NAME = "action-outcome"
 
+# Followup pattern for multi-target claims: matches separators ", " / " and " /
+# ", and " followed by a filename-like token. Used after the primary verb-anchored
+# match to expand "Created A and B" / "Removed A, B, and C" into per-file assertions.
+_MULTI_TARGET_FOLLOWUP = re.compile(
+    r"(?:\s*,\s*(?:and\s+)?|\s+and\s+)['`\"]?([\w./\\-]+\.\w{1,8})['`\"]?",
+    re.IGNORECASE,
+)
+
 # ─────── Claim-extraction patterns ───────
 # Each tuple: (kind, regex). The kind is what the claim is asserting in plain
 # domain terms. Matching is intentionally permissive — false positives in
@@ -272,6 +280,27 @@ def _extract_claim_assertions(claim: str) -> list[tuple[str, str | None, str]]:
             if kind not in ("vague_completion",):
                 seen_specific = True
 
+            # Multi-target expansion (v1.2+): for file-creation/deletion claims,
+            # scan the text immediately after the matched span for chained
+            # filenames connected by ", " / " and " / ", and ". This catches
+            # "Created auth.py and helpers.py" / "Removed old.py, legacy.py".
+            if kind in ("created_file", "created_file_terse", "deleted_file") and target:
+                tail_start = m.end()
+                # Bound the tail at the next sentence boundary so we don't drag
+                # filenames from later sentences into this assertion's scope.
+                sentence_end = _next_sentence_boundary(claim, tail_start)
+                tail = claim[tail_start:sentence_end]
+                for fm in _MULTI_TARGET_FOLLOWUP.finditer(tail):
+                    chained_target = fm.group(1)
+                    if chained_target == target:
+                        continue
+                    chained_excerpt = (
+                        f"{excerpt} (chained: '{chained_target}')"
+                        if len(excerpt) + len(chained_target) + 14 <= 200
+                        else excerpt
+                    )
+                    assertions.append((kind, chained_target, chained_excerpt))
+
     # Dedupe identical (kind, target) pairs while preserving order
     seen: set[tuple[str, str | None]] = set()
     unique: list[tuple[str, str | None, str]] = []
@@ -282,6 +311,23 @@ def _extract_claim_assertions(claim: str) -> list[tuple[str, str | None, str]]:
         seen.add(key)
         unique.append(a)
     return unique
+
+
+def _next_sentence_boundary(text: str, start: int) -> int:
+    """Return the index of the next sentence-ending boundary at or after `start`,
+    or len(text) if none. Used to bound multi-target expansion to one sentence.
+
+    A period only counts as a boundary when followed by whitespace or end-of-string —
+    so periods inside filenames ('helpers.py') don't terminate the scan, but
+    'helpers.py. Then…' does (the second period, before whitespace, terminates).
+    """
+    boundary_chars = ".!?"
+    n = len(text)
+    for i in range(start, n):
+        # End-of-string OR whitespace immediately after = real boundary.
+        if text[i] in boundary_chars and (i + 1 >= n or text[i + 1].isspace()):
+            return i
+    return n
 
 
 # ─────── Mismatch detection ───────
