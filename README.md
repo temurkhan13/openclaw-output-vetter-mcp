@@ -4,7 +4,7 @@
 
 > **MCP server for verifying AI agent claims vs reality** — single-transcript inline grounding-check that flags when an agent's response states facts not in the input context, when its code silently swallows exceptions and substitutes mock data, or when its multi-turn transcript contains contradictions or unverified completion claims. **Sub-second, local, free, MCP-native** — designed to be called inline from Claude Code / Cursor / Cline / OpenClaw agents during the conversation, not as a separate eval-pipeline. The lightweight complement to dashboard-based eval frameworks (DeepEval, Phoenix, LangSmith).
 
-[![Status: v1.0.0](https://img.shields.io/badge/status-v1.0.0-brightgreen)](https://github.com/temurkhan13/openclaw-output-vetter-mcp) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE) [![MCP](https://img.shields.io/badge/protocol-MCP-purple)](https://modelcontextprotocol.io/) [![PyPI](https://img.shields.io/pypi/v/openclaw-output-vetter-mcp)](https://pypi.org/project/openclaw-output-vetter-mcp/)
+[![Status: v1.3.0](https://img.shields.io/badge/status-v1.3.0-brightgreen)](https://github.com/temurkhan13/openclaw-output-vetter-mcp) [![Tests: 114 passing](https://img.shields.io/badge/tests-114%20passing-brightgreen)](./tests) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE) [![MCP](https://img.shields.io/badge/protocol-MCP-purple)](https://modelcontextprotocol.io/) [![PyPI](https://img.shields.io/pypi/v/openclaw-output-vetter-mcp)](https://pypi.org/project/openclaw-output-vetter-mcp/)
 
 ---
 
