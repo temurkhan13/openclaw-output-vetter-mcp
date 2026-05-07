@@ -1,7 +1,9 @@
 # SPEC — openclaw-output-vetter-mcp
 
-**Version:** v1.2
-**Last updated:** 2026-05-05 (overnight Phase 2A backfill — added v1.1 + v1.2 sections)
+**Version:** v1.3.0
+**Status:** v1.1 verify_action_outcome (P10 ABSORB) + v1.2 chained-claim parser + **v1.3 grounding scanner rewrite** (stem-Jaccard + stop-word filter + entity-mismatch detection + new `confidence_note` field for honest disclosure of lexical-method limits; adversarial test 1/5 → 4/5 PASS)
+**Tests:** 114 passing
+**Last updated:** 2026-05-07 (D3 SPEC drift sweep)
 
 Server identifier: `openclaw-output-vetter`. Lives on PyPI as `openclaw-output-vetter-mcp`.
 
