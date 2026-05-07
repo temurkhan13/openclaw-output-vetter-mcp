@@ -218,10 +218,12 @@ Across all four tools:
 - **FABRICATED**: high-severity issues. For grounding: zero claims grounded. For swallowed-exceptions: at least one HIGH (mock-substitution). For transcript: at least one HIGH (unverified-completion-claim). For action-outcome: at least one CRITICAL OR (HIGH AND zero matched).
 - **UNVERIFIED**: scanner could not determine. For grounding: answer too short or empty. For swallowed-exceptions: code unparseable. For transcript: empty list. For action-outcome: claim has no extractable assertions AND no `expected_changes` AND no constraint-violation detected.
 
-## Future work (v1.3+)
+## Future work (v1.4+)
+
+(v1.3 grounding-rewrite shipped 2026-05-06: stem-Jaccard + stop-word filter + entity-mismatch detection + `confidence_note` field. Adversarial test 1/5 → 4/5 PASS. Items below are post-v1.3 candidates.)
 
 - LLM-as-judge backend (wraps DeepEval `FaithfulnessMetric`) gated behind `pip install openclaw-output-vetter-mcp[llm-judge]` extra
-- Embedding-based similarity (sentence-transformers) for higher semantic-equivalence detection
+- Embedding-based similarity (sentence-transformers) for higher semantic-equivalence detection beyond what the v1.3 stem-Jaccard scanner achieves
 - Tool-call-without-side-effect check (requires inferring observable evidence in later turns)
 - Multi-language swallowed-exception scanners (TypeScript via tree-sitter, Go via go/parser, Rust via syn)
 - Issue persistence + cross-session aggregation

@@ -78,4 +78,3 @@ jobs:
 
       - name: Run mypy
         run: mypy src/openclaw_output_vetter_mcp
-        continue-on-error: true  # mypy strict mode — surface findings without blocking until v1.x stabilizes
