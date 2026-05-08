@@ -145,6 +145,16 @@ Prompts:
 pip install openclaw-output-vetter-mcp
 ```
 
+### Quick verify (~30 seconds, no config)
+
+After install, run the bundled demo to see all three scanners catch real failure patterns:
+
+```bash
+openclaw-output-vetter-mcp-demo
+```
+
+You'll see four cases: a paraphrased grounded answer (CLEAN), an entity-mismatch fabrication (FABRICATED), a Python `try/except: pass` block flagged for swallowing exceptions, and the canonical chiefofautism May-2026 HN failure mode — an agent claim "I cleaned up the project structure" against an unchanged before/after snapshot returning STATE_UNCHANGED FABRICATED verdict. No external I/O, no API keys — safe to run anywhere.
+
 ### Configure for Claude Desktop
 
 Add to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
