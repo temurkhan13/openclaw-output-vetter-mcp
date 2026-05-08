@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.2] — 2026-05-08
+
+### Added — `openclaw-output-vetter-mcp-demo` console script (V1 of cross-product UX retrofit)
+
+A new console script that runs all three scanners against representative inputs in ~30 seconds:
+
+1. **verify_grounding** — paraphrased-grounded answer + entity-mismatch fabrication
+2. **find_swallowed_exceptions** — Python source with `try/except: pass` pattern
+3. **verify_action_outcome** — agent claim "cleaned up project" against unchanged before/after snapshot (the canonical May-2026 HN story / chiefofautism failure mode)
+
+Output for each: verdict (CLEAN/FABRICATED/PARTIALLY-GROUNDED/UNVERIFIED) + count of findings/mismatches + top finding's severity + rule_id + description.
+
+**Usage:**
+
+```
+$ pip install openclaw-output-vetter-mcp
+$ openclaw-output-vetter-mcp-demo
+
+  4. verify_action_outcome · 'I cleaned up the project' / state unchanged
+    verdict:    FABRICATED
+    [HIGH] ACTION_OUTCOME.STATE_UNCHANGED: Claim asserts an action was taken,
+       but the before and after snapshots are identical.
+       expected: some change visible between before/after snapshot
+       actual:   before and after snapshots are identical (no change detected)
+```
+
+**No external I/O.** All inputs are hand-curated string literals. Safe to run anywhere.
+
+Adds a second console-script entry (`openclaw-output-vetter-mcp-demo`) alongside the existing MCP server entry.
+
 ## [1.3.1] — 2026-05-08
 
 ### Added — first-run startup banner (visibility-after-install fix, V2 of cross-product UX retrofit)
