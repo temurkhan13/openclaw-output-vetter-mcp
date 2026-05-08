@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.1] — 2026-05-08
+
+### Added — first-run startup banner (visibility-after-install fix, V2 of cross-product UX retrofit)
+
+When the server starts via `python -m openclaw_output_vetter_mcp` or the console script, the first stderr line is now a one-line value-prove receipt:
+
+```
+openclaw-output-vetter-mcp v1.3.1 ready · post-action verify (response-grounding + claim-vs-action divergence + entity-mismatch) · backend=default
+```
+
+Before v1.3.1 the server started silently — operators who'd just `pip install`ed had no immediate signal of what the server actually does. The banner is the first-30-seconds value moment that was previously missing.
+
+**Suppressible:** set `OPENCLAW_VETTER_QUIET=1` (or `true` / `yes`) to skip the banner.
+
+**No protocol behavior changed.** Banner is stderr-only; stdout (the MCP JSON-RPC channel) is untouched. Pure observability addition.
+
 ## [1.3.0] — 2026-05-06
 
 ### Improved — `verify_response_grounding` is no longer pure bag-of-words Jaccard
