@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.3] — 2026-05-08
+
+### Added — `openclaw-output-vetter-mcp-report` console script (V3 of cross-product UX retrofit)
+
+A new console script that runs all three scanners (grounding, swallowed-exceptions, action-outcome) against the same representative cases as the demo and prints a one-page GitHub-flavored markdown report on stdout.
+
+Output: per-scanner section with verdict + key findings/mismatches in markdown bullets, including the canonical chiefofautism May-2026 HN failure-mode case (claim "cleaned up project" against unchanged state → STATE_UNCHANGED FABRICATED).
+
+UTF-8 stdout enforced. New `render.py` exports `render_output_vet_report(...)` plus per-scanner sub-renderers (`render_grounding`, `render_swallowed_exceptions`, `render_action_outcome`).
+
+V3 of cross-product UX retrofit. No protocol behavior changed.
+
 ## [1.3.2] — 2026-05-08
 
 ### Added — `openclaw-output-vetter-mcp-demo` console script (V1 of cross-product UX retrofit)
