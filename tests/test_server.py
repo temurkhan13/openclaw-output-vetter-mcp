@@ -59,8 +59,8 @@ async def test_call_tool_verify_grounding_clean() -> None:
                 name="verify_response_grounding",
                 arguments={
                     "question": "Where is the office?",
-                    "context": "Pixelette Technologies is headquartered in London.",
-                    "answer": "The Pixelette Technologies headquarters is in London.",
+                    "context": "Acme Corp is headquartered in London.",
+                    "answer": "The Acme Corp headquarters is in London.",
                 },
             ),
         )
@@ -82,9 +82,9 @@ async def test_call_tool_verify_grounding_fabricated() -> None:
                 name="verify_response_grounding",
                 arguments={
                     "question": "What's the funding?",
-                    "context": "Pixelette is a self-funded software studio.",
+                    "context": "Acme is a self-funded software studio.",
                     "answer": (
-                        "Pixelette has raised twelve million dollars in Series A funding from "
+                        "Acme has raised twelve million dollars in Series A funding from "
                         "Sequoia Capital. The company has forty-seven full-time employees."
                     ),
                 },

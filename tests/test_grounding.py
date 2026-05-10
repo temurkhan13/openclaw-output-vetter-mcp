@@ -38,11 +38,11 @@ def test_verify_grounding_clean_when_all_claims_supported() -> None:
     result = verify_grounding(
         question="Where is the office?",
         context=(
-            "Pixelette Technologies is headquartered in London. "
+            "Acme Corp is headquartered in London. "
             "The team is remote-first with members across Pakistan, the UK, and Canada."
         ),
         answer=(
-            "The Pixelette Technologies headquarters is in London. "
+            "The Acme Corp headquarters is in London. "
             "The team is remote-first."
         ),
     )
@@ -55,9 +55,9 @@ def test_verify_grounding_clean_when_all_claims_supported() -> None:
 def test_verify_grounding_fabricated_when_no_claims_supported() -> None:
     result = verify_grounding(
         question="What's the funding?",
-        context="Pixelette Technologies is a self-funded software studio.",
+        context="Acme Corp is a self-funded software studio.",
         answer=(
-            "Pixelette Technologies has raised twelve million dollars in Series A funding "
+            "Acme Corp has raised twelve million dollars in Series A funding "
             "led by Sequoia Capital. The company has forty-seven full-time employees and "
             "recently expanded into the APAC region."
         ),
@@ -70,9 +70,9 @@ def test_verify_grounding_fabricated_when_no_claims_supported() -> None:
 def test_verify_grounding_partial_when_mixed() -> None:
     result = verify_grounding(
         question="Where is the office?",
-        context="Pixelette Technologies is headquartered in London.",
+        context="Acme Corp is headquartered in London.",
         answer=(
-            "The Pixelette Technologies headquarters is in London. "
+            "The Acme Corp headquarters is in London. "
             "Sequoia Capital led the most recent funding round of twelve million dollars."
         ),
     )
@@ -84,7 +84,7 @@ def test_verify_grounding_partial_when_mixed() -> None:
 def test_verify_grounding_unverified_when_answer_empty() -> None:
     result = verify_grounding(
         question="Where is the office?",
-        context="Pixelette Technologies is headquartered in London.",
+        context="Acme Corp is headquartered in London.",
         answer="",
     )
     assert result.verdict == Verdict.UNVERIFIED
@@ -94,7 +94,7 @@ def test_verify_grounding_unverified_when_answer_empty() -> None:
 def test_verify_grounding_unverified_when_answer_too_short() -> None:
     result = verify_grounding(
         question="Yes?",
-        context="Pixelette Technologies is headquartered in London.",
+        context="Acme Corp is headquartered in London.",
         answer="Yes",
     )
     assert result.verdict == Verdict.UNVERIFIED

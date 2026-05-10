@@ -35,21 +35,21 @@ SERVER_NAME = "openclaw-output-vetter"
 _DEMO_GROUNDED = {
     "question": "Where is the office?",
     "context": (
-        "Pixelette Technologies is headquartered in London. "
+        "Acme Corp is headquartered in London. "
         "We have a remote-first team with engineers in Pakistan + the UK + Canada. "
         "The London office is at 12 Old Brewery Mews."
     ),
     "answer": (
-        "The Pixelette Technologies headquarters is in London. "
+        "The Acme Corp headquarters is in London. "
         "The team is remote-first with members across Pakistan, the UK, and Canada."
     ),
 }
 
 _DEMO_FABRICATED = {
     "question": "What's the company's funding?",
-    "context": "Pixelette Technologies is a self-funded software studio.",
+    "context": "Acme Corp is a self-funded software studio.",
     "answer": (
-        "Pixelette Technologies has raised $12M in Series A funding led by Sequoia Capital. "
+        "Acme Corp has raised $12M in Series A funding led by Sequoia Capital. "
         "The company has 47 full-time employees and recently expanded into APAC."
     ),
 }
