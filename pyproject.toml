@@ -9,7 +9,7 @@ description = "MCP server for verifying AI agent claims vs reality — inline gr
 readme = "README.md"
 license = { file = "LICENSE" }
 authors = [
-    { name = "Temur Khan", email = "temur@pixelette.tech" },
+    { name = "Temur Khan", email = "hello@temhan.dev" },
 ]
 keywords = ["mcp", "model-context-protocol", "claude", "anthropic", "openai", "ai-agent", "production-ai", "hallucination-detection", "grounding-check", "agent-verification", "transcript-review", "swallowed-exception", "claim-verification", "openclaw", "agent-ops"]
 classifiers = [

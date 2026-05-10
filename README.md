@@ -34,7 +34,7 @@ verdict: FABRICATED
 ungrounded_count: 3
 overall_grounding_score: 0.08
 ungrounded claims:
-  - "Pixelette Technologies has raised $12M in Series A funding" (overlap 0.04)
+  - "Acme Corp has raised $12M in Series A funding" (overlap 0.04)
   - "led by Sequoia Capital" (overlap 0.00)
   - "47 full-time employees" (overlap 0.00)
 
@@ -200,7 +200,7 @@ If your AI deployment uses a different agent harness, custom claim-extraction pr
 | Complex | LLM-as-judge backend with your hosted model + persistence + CI integration + audit-trail | **$30,000–$45,000** | 4–8 weeks |
 
 **To engage:**
-1. Email **temur@pixelette.tech** with subject `Custom MCP Build inquiry — output verification`
+1. Email **hello@temhan.dev** with subject `Custom MCP Build inquiry — output verification`
 2. Include: 1-paragraph description of your stack + which tier
 3. Reply within 2 business days with a 30-min discovery call slot
 
@@ -218,7 +218,7 @@ If you're running production AI and want an outside practitioner to score readin
 | Audit Standard | Full audit, all 14 patterns, 5 Cs findings, 90-day follow-up | **$3,000** | 2–3 weeks |
 | Audit + Workshop | Standard audit + 2-day team workshop + first monthly audit included | **$7,500** | 3–4 weeks |
 
-Same email channel: **temur@pixelette.tech** with subject `AI audit inquiry`.
+Same email channel: **hello@temhan.dev** with subject `AI audit inquiry`.
 
 ---
 
@@ -249,5 +249,5 @@ MIT — see [LICENSE](./LICENSE).
 
 ---
 
-Built by [Temur Khan](https://www.notion.so/@temurkhan) — independent practitioner on production AI systems.
-Contact: **temur@pixelette.tech**
+Built by [Temur Khan](https://www.notion.so/@temurkhan) — production AI engineer.
+Contact: **hello@temhan.dev**
